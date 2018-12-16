@@ -1,0 +1,8 @@
+.vs/
+.idea/
+*.user
+bin/
+obj/
+coverage/
+packages/
+coverage-results.xml
