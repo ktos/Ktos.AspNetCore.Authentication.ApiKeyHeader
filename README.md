@@ -45,7 +45,7 @@ public void ConfigureServices(IServiceCollection services)
 Of course, you have to ensure your controller or actions are expecting user to 
 be authenticated, for example you can use `[Authorize]` attribute, as well as 
 remember about using `app.UseAuthentication()` before your `app.UseMvc()`. 
-[See Microsoft docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-2.1) for more.
+[See Microsoft docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-2.2) for more.
 
 # License
 
