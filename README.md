@@ -73,6 +73,60 @@ public void ConfigureServices(IServiceCollection services)
 }
 ```
 
+### Custom logic (simple)
+
+You may use option CustomAuthenticationHandler to provide a function which will be used
+
+### Custom logic
+
+In Startup.cs you may provide a type, implementing an
+`IApiKeyCustomAuthenticator` interface, which will be acquired from current
+request services to be used for authentication.
+
+In that case, you may use it for database connection, checking users api key
+usage limits or similar things before authentication.
+
+```csharp
+services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+})
+.AddApiKeyHeaderAuthentication(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
+
+services.AddSingleton<TestApiKeyService>();
+```
+
+The class implementing `IApiKeyCustomAuthenticator` is being created with
+dependency injection, so it may access database or other services useful for
+your own authentication logic.
+
+The interface requires for you implementation of a method returning a pair of
+bool and string, where bool indicates if the authentication was successful, and
+in the string you may provide a name, which will be used in created
+`AuthenticationTicket.Claims`, so you may differentiate between different users.
+
+In this example, a simple `ILogger<T>` is used:
+
+```csharp
+internal class TestApiKeyService : IApiKeyCustomAuthenticator
+{
+    public TestApiKeyService(ILogger<TestApiKeyService> logging)
+    {
+        logging.LogInformation("Created a test authenticator");
+    }
+
+    // returns true on "testapi", returns uppercase key as name, false in any other case
+    public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+}
+```
+
+Using both `CustomAuthenticatorType` and `ApiKey` options means only custom
+logic is used.
+
+If both `CustomAuthenticationHandler` and `CustomAuthenticatorType` are defined,
+only **type** is used.
+
 ## License
 
 Licensed under MIT

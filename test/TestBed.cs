@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;
 
@@ -44,6 +45,11 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 {
     internal class TestApiKeyService : IApiKeyCustomAuthenticator
     {
+        public TestApiKeyService(ILogger<TestApiKeyService> logging)
+        {
+            logging.LogInformation("Created a test authenticator");
+        }
+
         // returns true on "testapi", returns uppercase key as name, false in any other case
         public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
     }
