@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;
 
@@ -42,10 +43,22 @@ using System.Net.Http;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 {
+    internal class TestApiKeyService : IApiKeyCustomAuthenticator
+    {
+        public TestApiKeyService(ILogger<TestApiKeyService> logging)
+        {
+            logging.LogInformation("Created a test authenticator");
+        }
+
+        // returns true on "testapi", returns uppercase key as name, false in any other case
+        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+    }
+
     internal static class TestBed
     {
         public static void SetApiKey(this HttpClient client, string apikey, string header = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader)
         {
+            client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add(header, apikey);
         }
 
@@ -76,7 +89,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                         {
                             var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
                             if (!result.Succeeded)
+                            {
                                 await context.ChallengeAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync(result.Ticket.Principal.Identity.Name);
+                            }
                         }
                         else
                         {
@@ -87,6 +106,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                 .ConfigureServices(services =>
                 {
                     builderAction(services.AddAuthentication(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
+
+                    // add singleton class used for custom authentication
+                    services.AddSingleton<TestApiKeyService>();
                 });
 
             return new TestServer(builder);
