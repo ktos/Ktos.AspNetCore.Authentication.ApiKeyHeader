@@ -162,27 +162,27 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             {
                 return AuthenticateResult.NoResult();
             }
-            else if (Options.CustomAuthenticatorType != null)
+            else if (Options.CustomAuthenticatorType != null || Options.CustomAuthenticationHandler != null)
             {
-                var service = Context.RequestServices.GetService(Options.CustomAuthenticatorType) as IApiKeyCustomAuthenticator;
-                if (service == null)
+                bool result = false;
+                string claimName = null;
+
+                if (Options.CustomAuthenticatorType != null)
                 {
-                    throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
+                    var service = Context.RequestServices.GetService(Options.CustomAuthenticatorType) as IApiKeyCustomAuthenticator;
+                    if (service == null)
+                    {
+                        throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
+                    }
+
+                    (result, claimName) = service.CustomAuthenticationHandler(headerKey);
                 }
 
-                (var result, var claimName) = service.CustomAuthenticationHandler(headerKey);
-                if (result)
+                if (Options.CustomAuthenticationHandler != null)
                 {
-                    return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
+                    (result, claimName) = Options.CustomAuthenticationHandler(headerKey);
                 }
-                else
-                {
-                    return AuthenticateResult.NoResult();
-                }
-            }
-            else if (Options.CustomAuthenticationHandler != null)
-            {
-                (var result, var claimName) = Options.CustomAuthenticationHandler(headerKey);
+
                 if (result)
                 {
                     return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
