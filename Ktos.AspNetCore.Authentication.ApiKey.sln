@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.168
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29920.165
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ktos.AspNetCore.Authentication.ApiKeyHeader", "src\Ktos.AspNetCore.Authentication.ApiKeyHeader.csproj", "{6E853B99-F93D-402E-83F4-E49ACB8AA746}"
 EndProject

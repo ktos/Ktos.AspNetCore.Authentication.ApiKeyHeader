@@ -41,6 +41,14 @@ using System.Threading.Tasks;
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {
     /// <summary>
+    /// Function returning if provided API key is valid or not
+    /// </summary>
+    /// <param name="apiKey">API key sent along with HTTP request</param>
+    /// <returns>Pair of bool, string, where bool defines if API key was valid and string
+    /// will be used as principal name in provided claims</returns>
+    public delegate (bool, string) CustomApiKeyHandlerDelegate(string apiKey);
+
+    /// <summary>
     /// Some defaults for the ApiKey Header Authentication schemea
     /// </summary>
     public static class ApiKeyHeaderAuthenticationDefaults
@@ -78,9 +86,24 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     }
 
     /// <summary>
+    /// Defines the type of the function the custom API key authentication logic must follow
+    /// </summary>
+    public interface IApiKeyCustomAuthenticator
+    {
+        /// <summary>
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a tuple of string and bool, which are name of the authenticate user used in created
+        /// ticket and result of the authentication. May be used for checking multiple authentication keys
+        /// for multiple users or for adding custom logic along with authentication, like additional logging.
+        /// </para>
+        CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; }
+    }
+
+    /// <summary>
     /// Options for the ApiKeyHeader authentication scheme
     /// </summary>
-    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions
+    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions, IApiKeyCustomAuthenticator
     {
         /// <summary>
         /// The key user must provide in X-APIKEY header
@@ -91,6 +114,25 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// The header which is being checked for valid key, by default is X-APIKEY
         /// </summary>
         public string Header { get; set; } = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader;
+
+        /// <summary>
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a tuple of string and bool, which are name of the authenticate user used in created
+        /// ticket and result of the authentication. May be used for checking multiple authentication keys
+        /// for multiple users or for adding custom logic along with authentication, like additional logging.
+        /// </para>
+        /// <para>Using this option overrides usage of ApiKey, which is not being checked at all, only custom
+        /// logic is fired.
+        /// </para>
+        /// </summary>
+        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; set; }
+
+        /// <summary>
+        /// Defines a custom authentication type implementing IApiKeyCustomAuthenticator which will be accessed
+        /// from the current services library and used to authenticate the request
+        /// </summary>
+        public Type CustomAuthenticatorType { get; set; }
     }
 
     /// <summary>
@@ -120,20 +162,54 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             {
                 return AuthenticateResult.NoResult();
             }
+            else if (Options.CustomAuthenticatorType != null || Options.CustomAuthenticationHandler != null)
+            {
+                bool result = false;
+                string claimName = null;
+
+                if (Options.CustomAuthenticatorType != null)
+                {
+                    var service = Context.RequestServices.GetService(Options.CustomAuthenticatorType) as IApiKeyCustomAuthenticator;
+                    if (service == null)
+                    {
+                        throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
+                    }
+
+                    (result, claimName) = service.CustomAuthenticationHandler(headerKey);
+                }
+
+                if (Options.CustomAuthenticationHandler != null)
+                {
+                    (result, claimName) = Options.CustomAuthenticationHandler(headerKey);
+                }
+
+                if (result)
+                {
+                    return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
+                }
+                else
+                {
+                    return AuthenticateResult.NoResult();
+                }
+            }
             else if (headerKey == Options.ApiKey)
             {
-                var claims = new[] { new Claim(ClaimTypes.Name, ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName) };
-                var identity = new ClaimsIdentity(claims, Scheme.Name);
-                var principal = new ClaimsPrincipal(identity);
-                var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
-                Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
-
-                return AuthenticateResult.Success(at);
+                return AuthenticateResult.Success(CreateAuthenticationTicket());
             }
             else
             {
                 return AuthenticateResult.NoResult();
             }
+        }
+
+        private AuthenticationTicket CreateAuthenticationTicket(string claimName = ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName)
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, claimName) };
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+            Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
+            return at;
         }
     }
 }
