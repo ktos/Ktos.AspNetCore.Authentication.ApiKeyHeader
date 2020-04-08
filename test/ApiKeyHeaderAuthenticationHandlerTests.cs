@@ -29,6 +29,7 @@
 
 #endregion License
 
+using System;
 using System.Net;
 using System.Threading.Tasks;
 using Xunit;
@@ -38,7 +39,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
     public class ApiKeyHeaderAuthenticationHandlerTests
     {
         [Fact]
-        public async Task NoAuthorizeOnRequestReturns401()
+        public async Task EmptyApiKeyReturns401()
         {
             var client = TestBed.GetClient();
             var response = await client.GetAsync("/");
@@ -48,7 +49,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         }
 
         [Fact]
-        public async Task BadCredentialsReturns401()
+        public async Task InvalidCredentialsReturns401()
         {
             var client = TestBed.GetClient();
             client.SetApiKey("wrongkey");
@@ -120,6 +121,16 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         }
 
         [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationLogicReturningNullNameThrows()
+        {
+            const string key = "goodkey";
+
+            var client = TestBed.GetClient(options => options.CustomAuthenticationHandler = (_) => (true, null));
+            client.SetApiKey(key);
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.GetAsync("/"));
+        }
+
+        [Fact]
         public async Task ValidCredentialsAndCustomAuthenticationServiceAuthorize()
         {
             const string key = "testapi";
@@ -130,6 +141,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(key.ToUpper(), await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndBadTypeOfAuthenticationServiceThrows()
+        {
+            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(object));
+            client.SetApiKey("testapi");
+            await Assert.ThrowsAsync<InvalidCastException>(async () => await client.GetAsync("/"));
         }
 
         [Fact]
