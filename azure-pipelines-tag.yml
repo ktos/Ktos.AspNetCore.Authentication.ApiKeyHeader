@@ -44,8 +44,10 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: 'dotnet pack'
   inputs:
-    command: pack
-    arguments: '/p:PackageVersion=$(GitVersion.SemVer)'
+    command: 'pack'
+    packagesToPack: '**/*.csproj'
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'GitVersion.SemVer'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
