@@ -67,7 +67,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+            Assert.Equal(ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName, await response.Content.ReadAsStringAsync());
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+            Assert.Equal(ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName, await response.Content.ReadAsStringAsync());
         }
 
         [Fact]
@@ -97,6 +97,93 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationLogicAuthorize()
+        {
+            const string key = "goodkey";
+            const string key2 = "goodkey2";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key, await response.Content.ReadAsStringAsync());
+
+            client.SetApiKey(key2);
+            response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key2, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationLogicAndCustomHeaderAuthorize()
+        {
+            const string key = "goodkey";
+            const string key2 = "goodkey2";
+            const string customHeader = "X-CUSTOM-HEADER";
+
+            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            client.SetApiKey(key, customHeader);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key, await response.Content.ReadAsStringAsync());
+
+            client.SetApiKey(key2, customHeader);
+            response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key2, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task InvalidCredentialsAndCustomAuthenticationLogicReturns401()
+        {
+            const string key = "goodkey";
+            const string key2 = "badkey";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key, await response.Content.ReadAsStringAsync());
+
+            client.SetApiKey(key2);
+            response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task InvalidCredentialsAndCustomAuthenticationLogicAndCustomHeaderReturns401()
+        {
+            const string key = "goodkey";
+            const string key2 = "badkey";
+            const string customHeader = "X-CUSTOM-HEADER";
+
+            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            client.SetApiKey(key, customHeader);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key, await response.Content.ReadAsStringAsync());
+
+            client.SetApiKey(key2, customHeader);
+            response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+        }
+
+        private (string, bool) CustomAuthenticationLogic(string apiKey)
+        {
+            return (apiKey, apiKey.StartsWith("good"));
         }
     }
 }

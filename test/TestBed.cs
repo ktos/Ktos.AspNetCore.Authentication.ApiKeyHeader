@@ -46,6 +46,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
     {
         public static void SetApiKey(this HttpClient client, string apikey, string header = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader)
         {
+            client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add(header, apikey);
         }
 
@@ -76,7 +77,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                         {
                             var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
                             if (!result.Succeeded)
+                            {
                                 await context.ChallengeAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync(result.Ticket.Principal.Identity.Name);
+                            }
                         }
                         else
                         {

@@ -91,6 +91,19 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// The header which is being checked for valid key, by default is X-APIKEY
         /// </summary>
         public string Header { get; set; } = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader;
+
+        /// <summary>
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a tuple of string and bool, which are name of the authenticate user used in created
+        /// ticket and result of the authentication. May be used for checking multiple authentication keys
+        /// for multiple users or for adding custom logic along with authentication, like additional logging.
+        /// </para>
+        /// <para>Using this option overrides usage of ApiKey, which is not being checked at all, only custom
+        /// logic is fired.
+        /// </para>
+        /// </summary>
+        public Func<string, (string, bool)> CustomAuthenticationHandler;
     }
 
     /// <summary>
@@ -120,20 +133,36 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             {
                 return AuthenticateResult.NoResult();
             }
+            else if (Options.CustomAuthenticationHandler != null)
+            {
+                (var claimName, var result) = Options.CustomAuthenticationHandler(headerKey);
+                if (result)
+                {
+                    return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
+                }
+                else
+                {
+                    return AuthenticateResult.NoResult();
+                }
+            }
             else if (headerKey == Options.ApiKey)
             {
-                var claims = new[] { new Claim(ClaimTypes.Name, ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName) };
-                var identity = new ClaimsIdentity(claims, Scheme.Name);
-                var principal = new ClaimsPrincipal(identity);
-                var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
-                Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
-
-                return AuthenticateResult.Success(at);
+                return AuthenticateResult.Success(CreateAuthenticationTicket());
             }
             else
             {
                 return AuthenticateResult.NoResult();
             }
+        }
+
+        private AuthenticationTicket CreateAuthenticationTicket(string claimName = ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName)
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, claimName) };
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+            Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
+            return at;
         }
     }
 }
