@@ -10,6 +10,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageTags>api;apikey;aspnetcore;authentication;security</PackageTags>
     <PackageProjectUrl>https://github.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
