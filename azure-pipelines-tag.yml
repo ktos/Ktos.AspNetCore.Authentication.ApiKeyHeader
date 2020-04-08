@@ -42,7 +42,7 @@ steps:
     reportDirectory: 'report/'
 
 - task: DotNetCoreCLI@2
-  displayName: 'dotnet pack'
+  displayName: 'dotnet pack /p:PackageVersion=$(GitVersion.SemVer)'
   inputs:
     command: pack
 

@@ -1,12 +1,12 @@
 # Ktos.AspNetCore.Authentication.ApiKeyHeader
 
-[![Build status](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_apis/build/status/Ktos.AspNetCore.Authentication.ApiKeyHeader-CI)](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_build/latest?definitionId=4)
+[![Build Status](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_apis/build/status/ApiKeyHeader%20Tag?branchName=master)](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_build/latest?definitionId=8&branchName=master)
 [![NuGet](https://img.shields.io/nuget/v/Ktos.AspNetCore.Authentication.ApiKeyHeader.svg)](https://www.nuget.org/packages/Ktos.AspNetCore.Authentication.ApiKeyHeader/)
 
 Authentication for ASP.NET Core Security using HTTP header and simple key
 
-This authentication method, while very simple, is of course not suitable for 
-production systems due to potential insecurities. However, as fast and simple 
+This authentication method, while very simple, is of course not suitable for
+production systems due to potential insecurities. However, as fast and simple
 method, still could be useful in situations you don't wan't to use token-based
 security.
 
@@ -44,8 +44,8 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 ```
 
 It requires you to authenticate to sent `X-APIKEY` header along with your
-request, with a value equal to the secret key you set in options, or the
-request will fail with `401 Unauthorized` HTTP error.
+request, with a value equal to the secret key you set in options, or the request
+will fail with `401 Unauthorized` HTTP error.
 
 Of course, *you* have to ensure your controller or actions are expecting user to
 be authenticated, for example you can use `[Authorize]`.
