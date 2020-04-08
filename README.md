@@ -3,7 +3,8 @@
 [![Build Status](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_apis/build/status/ApiKeyHeader%20Tag?branchName=master)](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_build/latest?definitionId=8&branchName=master)
 [![NuGet](https://img.shields.io/nuget/v/Ktos.AspNetCore.Authentication.ApiKeyHeader.svg)](https://www.nuget.org/packages/Ktos.AspNetCore.Authentication.ApiKeyHeader/)
 
-Authentication for ASP.NET Core Security using HTTP header and simple key
+Authentication for ASP.NET Core Security using HTTP header like `X-APIKEY` and
+simple single provided key.
 
 This authentication method, while very simple, is of course not suitable for
 production systems due to potential insecurities. However, as fast and simple
@@ -50,7 +51,7 @@ will fail with `401 Unauthorized` HTTP error.
 Of course, *you* have to ensure your controller or actions are expecting user to
 be authenticated, for example you can use `[Authorize]`.
 
-[See Microsoft docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-3.0) for more.
+[See Microsoft docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-3.1) for more.
 
 ### Custom header
 

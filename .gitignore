@@ -6,3 +6,4 @@ obj/
 coverage/
 packages/
 coverage-results.xml
+/.vscode

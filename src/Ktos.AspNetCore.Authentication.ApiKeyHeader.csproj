@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <PackageId>Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageId>
     <Authors>Marcin Badurowicz</Authors>
     <NoWarn>$(NoWarn);CS1998</NoWarn>
     <Description>Api Key in HTTP Header Authentication Scheme for ASP.NET Core 3.0</Description>
-    <PackageVersion>3.0.0-preview</PackageVersion>
+    <PackageVersion>3.1.0</PackageVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageTags>api;apikey;aspnetcore;authentication;security</PackageTags>
     <PackageProjectUrl>https://github.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.0" />
   </ItemGroup>
 </Project>
