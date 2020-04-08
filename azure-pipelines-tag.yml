@@ -42,9 +42,10 @@ steps:
     reportDirectory: 'report/'
 
 - task: DotNetCoreCLI@2
-  displayName: 'dotnet pack /p:PackageVersion=$(GitVersion.SemVer)'
+  displayName: 'dotnet pack'
   inputs:
     command: pack
+    arguments: '/p:PackageVersion=$(GitVersion.SemVer)'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
