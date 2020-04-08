@@ -78,9 +78,24 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     }
 
     /// <summary>
+    /// Defines the type of the function the custom API key authentication logic must follow
+    /// </summary>
+    public interface IApiKeyCustomAuthenticator
+    {
+        /// <summary>
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a tuple of string and bool, which are name of the authenticate user used in created
+        /// ticket and result of the authentication. May be used for checking multiple authentication keys
+        /// for multiple users or for adding custom logic along with authentication, like additional logging.
+        /// </para>
+        Func<string, (string, bool)> CustomAuthenticationHandler { get; }
+    }
+
+    /// <summary>
     /// Options for the ApiKeyHeader authentication scheme
     /// </summary>
-    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions
+    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions, IApiKeyCustomAuthenticator
     {
         /// <summary>
         /// The key user must provide in X-APIKEY header
@@ -103,7 +118,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// logic is fired.
         /// </para>
         /// </summary>
-        public Func<string, (string, bool)> CustomAuthenticationHandler;
+        public Func<string, (string, bool)> CustomAuthenticationHandler { get; set; }
+
+        /// <summary>
+        /// Defines a custom authentication type implementing IApiKeyCustomAuthenticator which will be accessed
+        /// from the current services library and used to authenticate the request
+        /// </summary>
+        public Type CustomAuthenticatorType { get; set; }
     }
 
     /// <summary>
@@ -132,6 +153,24 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             if (headerKey == null)
             {
                 return AuthenticateResult.NoResult();
+            }
+            else if (Options.CustomAuthenticatorType != null)
+            {
+                var service = Context.RequestServices.GetService(Options.CustomAuthenticatorType) as IApiKeyCustomAuthenticator;
+                if (service == null)
+                {
+                    throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
+                }
+
+                (var claimName, var result) = service.CustomAuthenticationHandler(headerKey);
+                if (result)
+                {
+                    return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
+                }
+                else
+                {
+                    return AuthenticateResult.NoResult();
+                }
             }
             else if (Options.CustomAuthenticationHandler != null)
             {
