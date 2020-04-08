@@ -42,6 +42,12 @@ using System.Net.Http;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 {
+    internal class TestApiKeyService : IApiKeyCustomAuthenticator
+    {
+        // returns true on "testapi", returns uppercase key as name, false in any other case
+        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+    }
+
     internal static class TestBed
     {
         public static void SetApiKey(this HttpClient client, string apikey, string header = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader)
@@ -94,6 +100,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                 .ConfigureServices(services =>
                 {
                     builderAction(services.AddAuthentication(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
+
+                    // add singleton class used for custom authentication
+                    services.AddSingleton<TestApiKeyService>();
                 });
 
             return new TestServer(builder);

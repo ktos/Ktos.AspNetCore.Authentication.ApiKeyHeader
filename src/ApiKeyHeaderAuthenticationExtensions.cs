@@ -41,6 +41,14 @@ using System.Threading.Tasks;
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {
     /// <summary>
+    /// Function returning if provided API key is valid or not
+    /// </summary>
+    /// <param name="apiKey">API key sent along with HTTP request</param>
+    /// <returns>Pair of bool, string, where bool defines if API key was valid and string
+    /// will be used as principal name in provided claims</returns>
+    public delegate (bool, string) CustomApiKeyHandlerDelegate(string apiKey);
+
+    /// <summary>
     /// Some defaults for the ApiKey Header Authentication schemea
     /// </summary>
     public static class ApiKeyHeaderAuthenticationDefaults
@@ -89,7 +97,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// ticket and result of the authentication. May be used for checking multiple authentication keys
         /// for multiple users or for adding custom logic along with authentication, like additional logging.
         /// </para>
-        Func<string, (string, bool)> CustomAuthenticationHandler { get; }
+        CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; }
     }
 
     /// <summary>
@@ -118,7 +126,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// logic is fired.
         /// </para>
         /// </summary>
-        public Func<string, (string, bool)> CustomAuthenticationHandler { get; set; }
+        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; set; }
 
         /// <summary>
         /// Defines a custom authentication type implementing IApiKeyCustomAuthenticator which will be accessed
@@ -162,7 +170,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
                     throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
                 }
 
-                (var claimName, var result) = service.CustomAuthenticationHandler(headerKey);
+                (var result, var claimName) = service.CustomAuthenticationHandler(headerKey);
                 if (result)
                 {
                     return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
@@ -174,7 +182,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             }
             else if (Options.CustomAuthenticationHandler != null)
             {
-                (var claimName, var result) = Options.CustomAuthenticationHandler(headerKey);
+                (var result, var claimName) = Options.CustomAuthenticationHandler(headerKey);
                 if (result)
                 {
                     return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));

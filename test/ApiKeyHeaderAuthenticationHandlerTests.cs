@@ -105,7 +105,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string key2 = "goodkey2";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
             client.SetApiKey(key);
             var response = await client.GetAsync("/");
 
@@ -120,13 +120,39 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         }
 
         [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationServiceAuthorize()
+        {
+            const string key = "testapi";
+
+            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(key.ToUpper(), await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task InvalidCredentialsAndCustomAuthenticationServiceReturns401()
+        {
+            const string key = "badapi";
+
+            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task ValidCredentialsAndCustomAuthenticationLogicAndCustomHeaderAuthorize()
         {
             const string key = "goodkey";
             const string key2 = "goodkey2";
             const string customHeader = "X-CUSTOM-HEADER";
 
-            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
             client.SetApiKey(key, customHeader);
             var response = await client.GetAsync("/");
 
@@ -146,7 +172,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string key2 = "badkey";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
             client.SetApiKey(key);
             var response = await client.GetAsync("/");
 
@@ -167,7 +193,12 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key2 = "badkey";
             const string customHeader = "X-CUSTOM-HEADER";
 
-            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = CustomAuthenticationLogic; });
+            var client = TestBed.GetClient(options =>
+            {
+                options.Header = customHeader;
+                options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic;
+            });
+
             client.SetApiKey(key, customHeader);
             var response = await client.GetAsync("/");
 
@@ -181,9 +212,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
         }
 
-        private (string, bool) CustomAuthenticationLogic(string apiKey)
+        private (bool, string) SimpleCustomAuthenticationLogic(string apiKey)
         {
-            return (apiKey, apiKey.StartsWith("good"));
+            return (apiKey.StartsWith("good"), apiKey);
         }
     }
 }
