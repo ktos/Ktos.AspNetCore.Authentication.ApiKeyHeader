@@ -97,6 +97,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// ticket and result of the authentication. May be used for checking multiple authentication keys
         /// for multiple users or for adding custom logic along with authentication, like additional logging.
         /// </para>
+        /// </summary>
         CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; }
     }
 
