@@ -11,6 +11,11 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
+- task: DotNetCoreInstaller@0
+  inputs:
+    packageType: 'sdk'
+    version: '5.0.100-preview.2.20176.6'
+
 - task: DotNetCoreCLI@2
   displayName: Restore
   inputs:
