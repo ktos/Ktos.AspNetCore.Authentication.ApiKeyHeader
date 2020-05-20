@@ -37,7 +37,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     /// <summary>
     /// Options for the ApiKeyHeader authentication scheme
     /// </summary>
-    public class ApiKeyHeaderAuthenticationOptions<T> : AuthenticationSchemeOptions, IApiKeyCustomAuthenticator where T : IApiKeyCustomAuthenticator
+    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions, IApiKeyCustomAuthenticator
     {
         /// <summary>
         /// The key user must provide in X-APIKEY header
@@ -66,6 +66,6 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// Defines a custom authentication type implementing IApiKeyCustomAuthenticator which will be accessed
         /// from the current services library and used to authenticate the request
         /// </summary>
-        public T CustomAuthenticatorType { get; set; }
+        public Type CustomAuthenticatorType { get; set; }
     }
 }
