@@ -29,24 +29,27 @@
 
 #endregion License
 
-using Microsoft.AspNetCore.Authentication;
-using System;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {
     /// <summary>
-    /// Class with extensions for AuthenticationBuilder
+    /// Some defaults for the ApiKey Header Authentication schemea
     /// </summary>
-    public static class ApiKeyHeaderAuthenticationExtensions
+    public static class ApiKeyHeaderAuthenticationDefaults
     {
         /// <summary>
-        /// Adds a ApiKeyHeader authentication method, where user must provide
-        /// a valid key in X-APIKEY request header or similar to be authenticaed
-        /// successfully.
+        /// Default name for the Authentication Scheme
         /// </summary>
-        /// <param name="builder">Configuration builder</param>
-        /// <param name="configureOptions">Options for the ApiKeyHeader authentication</param>
-        /// <returns></returns>
-        public static AuthenticationBuilder AddApiKeyHeaderAuthentication(this AuthenticationBuilder builder, Action<ApiKeyHeaderAuthenticationOptions> configureOptions) => builder.AddScheme<ApiKeyHeaderAuthenticationOptions, ApiKeyHeaderAuthenticationHandler>(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme, configureOptions);
+        public const string AuthenticationScheme = "ApiKeyHeader";
+
+        /// <summary>
+        /// Default header which is being checked for the key
+        /// </summary>
+        public const string AuthenticationHeader = "X-APIKEY";
+
+        /// <summary>
+        /// Name set for claim when authentication is successful
+        /// </summary>
+        public const string AuthenticationClaimName = "ApiKeyHeader User";
     }
 }

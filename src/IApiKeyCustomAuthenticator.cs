@@ -29,24 +29,22 @@
 
 #endregion License
 
-using Microsoft.AspNetCore.Authentication;
-using System;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {
     /// <summary>
-    /// Class with extensions for AuthenticationBuilder
+    /// Defines the type of the function the custom API key authentication logic must follow
     /// </summary>
-    public static class ApiKeyHeaderAuthenticationExtensions
+    public interface IApiKeyCustomAuthenticator
     {
         /// <summary>
-        /// Adds a ApiKeyHeader authentication method, where user must provide
-        /// a valid key in X-APIKEY request header or similar to be authenticaed
-        /// successfully.
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a tuple of string and bool, which are name of the authenticate user used in created
+        /// ticket and result of the authentication. May be used for checking multiple authentication keys
+        /// for multiple users or for adding custom logic along with authentication, like additional logging.
+        /// </para>
         /// </summary>
-        /// <param name="builder">Configuration builder</param>
-        /// <param name="configureOptions">Options for the ApiKeyHeader authentication</param>
-        /// <returns></returns>
-        public static AuthenticationBuilder AddApiKeyHeaderAuthentication(this AuthenticationBuilder builder, Action<ApiKeyHeaderAuthenticationOptions> configureOptions) => builder.AddScheme<ApiKeyHeaderAuthenticationOptions, ApiKeyHeaderAuthenticationHandler>(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme, configureOptions);
+        CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; }
     }
 }
