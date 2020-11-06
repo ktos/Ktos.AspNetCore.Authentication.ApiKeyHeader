@@ -121,6 +121,20 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         }
 
         [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationLogicProperlySetClaims()
+        {
+            const string key = "goodkey";
+            const string claimName = "John";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(claimName, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task ValidCredentialsAndCustomAuthenticationLogicReturningNullNameThrows()
         {
             const string key = "goodkey";
