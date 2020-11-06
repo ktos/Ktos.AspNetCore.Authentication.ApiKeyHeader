@@ -75,15 +75,33 @@ public void ConfigureServices(IServiceCollection services)
 
 ### Custom logic (simple)
 
-You may use option CustomAuthenticationHandler to provide a function which will be used
+You may use option CustomAuthenticationHandler to provide a function which will
+be used to perform a validation of your key. For example let's use such method:
 
-### Custom logic
+```csharp
+private (bool, string) SimpleCustomAuthenticationLogic(string apiKey)
+{
+    if (apiKey == "abc123") return (true, "Jon");
+    if (apiKey == "def234") return (true, "Snow");
+
+    return (false, string.Empty);
+}
+```
+
+Your function must be matching `CustomApiKeyHandlerDelegate` delegate -- input
+parameters is a string, the user-provided API key, the result should be a tuple
+of bool and string -- where the bool value is telling if the authentication is
+successful, and the string value is the user name to be used in
+`AuthenticationTicket.Principal.Identity.Name`, so you may differentiate about
+it later.
+
+### Custom logic (more advanced)
 
 In Startup.cs you may provide a type, implementing an
 `IApiKeyCustomAuthenticator` interface, which will be acquired from current
 request services to be used for authentication.
 
-In that case, you may use it for database connection, checking users api key
+In that case, you may use it for database connection, checking users API key
 usage limits or similar things before authentication.
 
 ```csharp
@@ -104,7 +122,8 @@ your own authentication logic.
 The interface requires for you implementation of a method returning a pair of
 bool and string, where bool indicates if the authentication was successful, and
 in the string you may provide a name, which will be used in created
-`AuthenticationTicket.Claims`, so you may differentiate between different users.
+`AuthenticationTicket.Claims` as `Principal.Identity.Name` so you may
+differentiate between different users.
 
 In this example, a simple `ILogger<T>` is used:
 
