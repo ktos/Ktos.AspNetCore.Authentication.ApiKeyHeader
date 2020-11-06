@@ -29,8 +29,8 @@
 
 #endregion License
 
-using Microsoft.AspNetCore.Authentication;
 using System;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {

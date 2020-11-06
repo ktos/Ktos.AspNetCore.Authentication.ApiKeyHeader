@@ -29,6 +29,8 @@
 
 #endregion License
 
+using System;
+using System.Net.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -36,8 +38,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Net.Http;
 
 // based on https://github.com/bruno-garcia/Bazinga.AspNetCore.Authentication.Basic/blob/master/test/TestBed.cs
 

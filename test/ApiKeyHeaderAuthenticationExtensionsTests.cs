@@ -29,10 +29,10 @@
 
 #endregion License
 
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
