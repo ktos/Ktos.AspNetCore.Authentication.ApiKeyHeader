@@ -31,6 +31,7 @@
 
 using System;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -132,6 +133,79 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(claimName, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationLogicProperlySetClaimsInContext()
+        {
+            const string key = "goodkey";
+            const string claimName = "John";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/fulluser");
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            var user = JsonDocument.Parse(content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(claimName, user.RootElement.GetProperty("Name").GetString());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationFullTicketProperlySetOtherClaimsInTicket()
+        {
+            const string key = "goodkey";
+            const string claimName = "John";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/fullticketprincipal");
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            var claims = JsonDocument.Parse(content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", claims.RootElement[0].GetProperty("Type").GetString());
+            Assert.Equal(claimName, claims.RootElement[0].GetProperty("Value").GetString());
+            Assert.Equal("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", claims.RootElement[1].GetProperty("Type").GetString());
+            Assert.Equal(CustomFullTicketHandler.TestRole, claims.RootElement[1].GetProperty("Value").GetString());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationFullTicketProperlySetTicketProperties()
+        {
+            const string key = "goodkey";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/fullticketproperties");
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            var claims = JsonDocument.Parse(content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(CustomFullTicketHandler.Redirect, claims.RootElement.GetProperty("Items").GetProperty(".redirect").GetString());
+        }
+
+        [Fact]
+        public async Task ValidCredentialsAndCustomAuthenticationFullTicketProperlySetClaimsInContext()
+        {
+            const string key = "goodkey";
+            const string claimName = "John";
+
+            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
+            client.SetApiKey(key);
+            var response = await client.GetAsync("/fulluser");
+            var content = await response.Content.ReadAsStringAsync();
+
+            var user = JsonDocument.Parse(content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(claimName, user.RootElement.GetProperty("Name").GetString());
         }
 
         [Fact]

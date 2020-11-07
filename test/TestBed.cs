@@ -30,7 +30,10 @@
 #endregion License
 
 using System;
+using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -52,6 +55,36 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
         // returns true on "testapi", returns uppercase key as name, false in any other case
         public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+    }
+
+    internal class CustomFullTicketHandler : IApiKeyCustomAuthenticatorFullTicket
+    {
+        public const string TestRole = "testrole";
+        public const string Redirect = "http://localhost";
+
+        public AuthenticateResult CustomAuthenticationHandler(string key)
+        {
+            if (key == "goodkey")
+                return AuthenticateResult.Success(CreateAuthenticationTicket("John"));
+
+            if (key == "badkey")
+                return AuthenticateResult.Fail("failed");
+
+            return AuthenticateResult.NoResult();
+        }
+
+        private AuthenticationTicket CreateAuthenticationTicket(string claimName = ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName)
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, claimName), new Claim(ClaimTypes.Role, TestRole) };
+            var identity = new ClaimsIdentity(claims, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var ticket = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+
+            ticket.Properties.RedirectUri = Redirect;
+
+            return ticket;
+        }
     }
 
     internal static class TestBed
@@ -97,6 +130,42 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                                 await context.Response.WriteAsync(result.Ticket.Principal.Identity.Name);
                             }
                         }
+                        else if (context.Request.Path == new PathString("/fulluser"))
+                        {
+                            var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            if (!result.Succeeded)
+                            {
+                                await context.ChallengeAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync(JsonSerializer.Serialize(context.User.Identity));
+                            }
+                        }
+                        else if (context.Request.Path == new PathString("/fullticketprincipal"))
+                        {
+                            var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            if (!result.Succeeded)
+                            {
+                                await context.ChallengeAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync(JsonSerializer.Serialize(result.Ticket.Principal.Claims.Select(x => new { x.Type, x.Value })));
+                            }
+                        }
+                        else if (context.Request.Path == new PathString("/fullticketproperties"))
+                        {
+                            var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            if (!result.Succeeded)
+                            {
+                                await context.ChallengeAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync(JsonSerializer.Serialize(result.Ticket.Properties));
+                            }
+                        }
                         else
                         {
                             await next();
@@ -109,6 +178,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
                     // add singleton class used for custom authentication
                     services.AddSingleton<TestApiKeyService>();
+                    services.AddSingleton<CustomFullTicketHandler>();
                 });
 
             return new TestServer(builder);

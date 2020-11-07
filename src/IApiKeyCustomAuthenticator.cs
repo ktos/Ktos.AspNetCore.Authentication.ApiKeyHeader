@@ -29,6 +29,7 @@
 
 #endregion License
 
+using Microsoft.AspNetCore.Authentication;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 {
@@ -46,5 +47,19 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// </para>
         /// </summary>
         CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; }
+    }
+
+    /// <summary>
+    /// Defines the type of the function the custom API key authentication logic must follow
+    /// </summary>
+    public interface IApiKeyCustomAuthenticatorFullTicket
+    {
+        /// <summary>
+        /// <para>Custom function used for checking if the provided API key should be authenticated.</para>
+        /// <para>
+        /// Must return a full AuthenticateResult, allowing to customize full ticket claims, roles, etc.
+        /// </para>
+        /// </summary>
+        AuthenticateResult CustomAuthenticationHandler(string key);
     }
 }

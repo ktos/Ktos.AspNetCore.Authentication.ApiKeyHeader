@@ -140,11 +140,70 @@ internal class TestApiKeyService : IApiKeyCustomAuthenticator
 }
 ```
 
+### Custom logic (full AuthorizationTicket)
+
+In Startup.cs you may provide a type, implementing an
+`IApiKeyCustomAuthenticatorFullTicket` interface, which will be acquired from
+current request services to be used for authentication.
+
+In that case, you may use it for returning full `AuthorizationTicket` as you
+need - e.g. with proper claims or roles you are using later.
+
+```csharp
+services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+})
+.AddApiKeyHeaderAuthentication(options => options.CustomAuthenticatorType = typeof(CustomFullTicketHandler));
+
+services.AddSingleton<CustomFullTicketHandler>();
+```
+
+The class implementing `IApiKeyCustomAuthenticatorFullTicket` is being created with
+dependency injection, so it may access database or other services useful for
+your own authentication logic.
+
+The interface requires for you implementation of a method returning an
+`AuthorizationTicket`, which you can customize, for example:
+
+```csharp
+internal class CustomFullTicketHandler : IApiKeyCustomAuthenticatorFullTicket
+{
+    public AuthenticateResult CustomAuthenticationHandler(string key)
+    {
+        if (key == "goodkey")
+            return AuthenticateResult.Success(CreateAuthenticationTicket());
+
+        return AuthenticateResult.NoResult();
+    }
+
+    private AuthenticationTicket CreateAuthenticationTicket()
+    {
+        var claims = new[] {
+            new Claim(ClaimTypes.Name, "Jon Snow"),
+            new Claim(ClaimTypes.Role, "testrole")
+        };
+
+        var identity = new ClaimsIdentity(claims, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        var ticket = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+
+        ticket.Properties.RedirectUri = "http://localhost";
+
+        return ticket;
+    }
+}
+```
+
+<div class="warning">
 Using both `CustomAuthenticatorType` and `ApiKey` options means only custom
 logic is used.
 
 If both `CustomAuthenticationHandler` and `CustomAuthenticatorType` are defined,
 only **type** is used.
+</div>
 
 ## License
 

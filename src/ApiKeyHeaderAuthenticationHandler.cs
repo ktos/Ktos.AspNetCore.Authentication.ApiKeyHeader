@@ -82,13 +82,18 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
 
                 if (Options.CustomAuthenticatorType != null)
                 {
-                    var service = Context.RequestServices.GetService(Options.CustomAuthenticatorType) as IApiKeyCustomAuthenticator;
-                    if (service == null)
+                    switch (Context.RequestServices.GetService(Options.CustomAuthenticatorType))
                     {
-                        throw new InvalidCastException("Failed to use provided custom authenticator type as IApiKeyCustomAuthenticator");
-                    }
+                        case IApiKeyCustomAuthenticator s:
+                            (result, claimName) = s.CustomAuthenticationHandler(headerKey);
+                            break;
 
-                    (result, claimName) = service.CustomAuthenticationHandler(headerKey);
+                        case IApiKeyCustomAuthenticatorFullTicket s:
+                            return s.CustomAuthenticationHandler(headerKey);
+
+                        default:
+                            throw new InvalidCastException("Failed to use provided custom authenticator type");
+                    }
                 }
 
                 if (Options.CustomAuthenticationHandler != null)
@@ -121,7 +126,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);
             var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
-            Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
+            //Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
             return at;
         }
     }
