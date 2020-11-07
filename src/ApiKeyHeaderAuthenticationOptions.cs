@@ -29,7 +29,6 @@
 
 #endregion License
 
-using System;
 using Microsoft.AspNetCore.Authentication;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
@@ -37,7 +36,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     /// <summary>
     /// Options for the ApiKeyHeader authentication scheme
     /// </summary>
-    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions, IApiKeyCustomAuthenticator
+    public class ApiKeyHeaderAuthenticationOptions : AuthenticationSchemeOptions
     {
         /// <summary>
         /// The key user must provide in X-APIKEY header
@@ -63,9 +62,12 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         public CustomApiKeyHandlerDelegate CustomAuthenticationHandler { get; set; }
 
         /// <summary>
-        /// Defines a custom authentication type implementing IApiKeyCustomAuthenticator which will be accessed
-        /// from the current services library and used to authenticate the request
+        /// Defines if the logic should search for registered implementation of <see cref="IApiKeyCustomAuthenticator"/>
+        /// or <see cref="IApiKeyCustomAuthenticationTicketHandler"/> to handle authentication.
+        /// <para>
+        /// This option overrides usage of <see cref="CustomAuthenticationHandler"/>.
+        /// </para>
         /// </summary>
-        public Type CustomAuthenticatorType { get; set; }
+        public bool UseRegisteredAuthenticationHandler { get; set; }
     }
 }

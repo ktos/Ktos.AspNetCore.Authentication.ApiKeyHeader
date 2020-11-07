@@ -76,7 +76,8 @@ public void ConfigureServices(IServiceCollection services)
 ### Custom logic (simple)
 
 You may use option CustomAuthenticationHandler to provide a function which will
-be used to perform a validation of your key. For example let's use such method:
+be used to perform a validation of your key. For example let's use a simple
+method:
 
 ```csharp
 private (bool, string) SimpleCustomAuthenticationLogic(string apiKey)
@@ -97,9 +98,10 @@ it later.
 
 ### Custom logic (more advanced)
 
-In Startup.cs you may provide a type, implementing an
+In Startup.cs you may provide a type as a singleton, implementing an
 `IApiKeyCustomAuthenticator` interface, which will be acquired from current
-request services to be used for authentication.
+request services to be used for authentication. You have to set option for
+`UseRegisteredAuthenticationHandler` to true.
 
 In that case, you may use it for database connection, checking users API key
 usage limits or similar things before authentication.
@@ -110,14 +112,10 @@ services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
 })
-.AddApiKeyHeaderAuthentication(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
+.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
 
 services.AddSingleton<TestApiKeyService>();
 ```
-
-The class implementing `IApiKeyCustomAuthenticator` is being created with
-dependency injection, so it may access database or other services useful for
-your own authentication logic.
 
 The interface requires for you implementation of a method returning a pair of
 bool and string, where bool indicates if the authentication was successful, and
@@ -130,24 +128,32 @@ In this example, a simple `ILogger<T>` is used:
 ```csharp
 internal class TestApiKeyService : IApiKeyCustomAuthenticator
 {
-    public TestApiKeyService(ILogger<TestApiKeyService> logging)
+    private readonly ILogger logger;
+
+    public TestApiKeyService(ILogger<TestApiKeyService> logger)
     {
-        logging.LogInformation("Created a test authenticator");
+        this.logger = logger;
+        this.logger.LogInformation("Created a test authenticator");
     }
 
     // returns true on "testapi", returns uppercase key as name, false in any other case
-    public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+    public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) =>
+    {
+        logger.LogDebug($"Someone tried to authenticate with API key: {key}");
+        return key == "testapi" ? (true, key.ToUpper()) : (false, null);
+    };
 }
 ```
 
 ### Custom logic (full AuthorizationTicket)
 
-In Startup.cs you may provide a type, implementing an
-`IApiKeyCustomAuthenticatorFullTicket` interface, which will be acquired from
-current request services to be used for authentication.
+If `UseRegisteredAuthenticationHandler` is set to true and there is a registered
+singleton implementing an `IApiKeyCustomAuthenticatorFullTicket` interface, it
+will be used automatically.
 
-In that case, you may use it for returning full `AuthorizationTicket` as you
-need - e.g. with proper claims or roles you are using later.
+This interface allows to create a custom method returning full
+`AuthorizationTicket` as you need - e.g. with proper claims or roles you are
+using later.
 
 ```csharp
 services.AddAuthentication(options =>
@@ -155,14 +161,14 @@ services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
 })
-.AddApiKeyHeaderAuthentication(options => options.CustomAuthenticatorType = typeof(CustomFullTicketHandler));
+.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
 
 services.AddSingleton<CustomFullTicketHandler>();
 ```
 
-The class implementing `IApiKeyCustomAuthenticatorFullTicket` is being created with
-dependency injection, so it may access database or other services useful for
-your own authentication logic.
+The class implementing `IApiKeyCustomAuthenticatorFullTicket` is being created
+with dependency injection, so it may access database or other services useful
+for your own authentication logic.
 
 The interface requires for you implementation of a method returning an
 `AuthorizationTicket`, which you can customize, for example:
@@ -197,13 +203,25 @@ internal class CustomFullTicketHandler : IApiKeyCustomAuthenticatorFullTicket
 }
 ```
 
-<div class="warning">
-Using both `CustomAuthenticatorType` and `ApiKey` options means only custom
-logic is used.
+### Mixing Options
 
-If both `CustomAuthenticationHandler` and `CustomAuthenticatorType` are defined,
-only **type** is used.
-</div>
+**Mixing options of `Options.ApiKey`, `Options.CustomAuthenticationHandler` and
+`Options.UseRegisteredAuthenticationHandler` may result in unexpected results,
+please treat them as mutually exclusive.**
+
+1. If the header is empty, no logic is being applied;
+2. If not and  `CustomAuthenticationHandler` is not null and
+   `UseRegisteredAuthenticationHandler` is false, `CustomAuthenticationHandler`
+   (method) is used;
+3. If not and `CustomAuthenticationHandler` is true and handler of type
+   `IApiKeyCustomAuthenticator` is registered, it will be used;
+4. If not and `CustomAuthenticationHandler` is true and handler returning
+   tickets (`IApiKeyCustomAuthenticationTicketHandler`) is registered, it will
+   be used;
+5. If not, but the header field value is equal to `Options.ApiKey` and
+   `UseRegisteredAuthenticationHandler` is false, Options.ApiKey will be used.
+
+In any other case, `NoResult()` is returned.
 
 ## License
 

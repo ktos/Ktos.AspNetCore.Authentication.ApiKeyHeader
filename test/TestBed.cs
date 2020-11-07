@@ -48,24 +48,32 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 {
     internal class TestApiKeyService : IApiKeyCustomAuthenticator
     {
-        public TestApiKeyService(ILogger<TestApiKeyService> logging)
+        private readonly ILogger logger;
+
+        public TestApiKeyService(ILogger<TestApiKeyService> logger)
         {
-            logging.LogInformation("Created a test authenticator");
+            this.logger = logger;
+            this.logger.LogInformation("Created a test authenticator");
         }
 
         // returns true on "testapi", returns uppercase key as name, false in any other case
-        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) => key == "testapi" ? (true, key.ToUpper()) : (false, null);
+        public CustomApiKeyHandlerDelegate CustomAuthenticationHandler => (key) =>
+        {
+            logger.LogDebug($"Someone tried to authenticate with API key: {key}");
+            return key == "testapi" ? (true, key.ToUpper()) : (false, null);
+        };
     }
 
-    internal class CustomFullTicketHandler : IApiKeyCustomAuthenticatorFullTicket
+    internal class CustomFullTicketHandler : IApiKeyCustomAuthenticationTicketHandler
     {
+        public const string TestUserName = "John";
         public const string TestRole = "testrole";
         public const string Redirect = "http://localhost";
 
         public AuthenticateResult CustomAuthenticationHandler(string key)
         {
             if (key == "goodkey")
-                return AuthenticateResult.Success(CreateAuthenticationTicket("John"));
+                return AuthenticateResult.Success(CreateAuthenticationTicket(TestUserName));
 
             if (key == "badkey")
                 return AuthenticateResult.Fail("failed");
@@ -89,23 +97,22 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
     internal static class TestBed
     {
-        public static void SetApiKey(this HttpClient client, string apikey, string header = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader)
+        public const string FullUserPath = "/fulluser";
+        public const string FullTicketPrincipalClaimsPath = "/fullticketprincipalclaims";
+        public const string FullTicketPropertiesPath = "/fullticketproperties";
+
+        public static void UseApiKey(this HttpClient client, string apikey, string header = ApiKeyHeaderAuthenticationDefaults.AuthenticationHeader)
         {
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add(header, apikey);
         }
 
-        public static HttpClient GetClient()
-        {
-            return GetClient((ApiKeyHeaderAuthenticationOptions options) => { options.ApiKey = "testapi"; });
-        }
-
-        public static HttpClient GetClient(Action<AuthenticationBuilder> builderAction)
+        public static HttpClient GetClientWithBuilder(Action<AuthenticationBuilder> builderAction)
         {
             return CreateServer(builderAction).CreateClient();
         }
 
-        public static HttpClient GetClient(Action<ApiKeyHeaderAuthenticationOptions> options)
+        public static HttpClient GetClientWithOptions(Action<ApiKeyHeaderAuthenticationOptions> options)
         {
             return CreateServer(b => b.AddApiKeyHeaderAuthentication(options)).CreateClient();
         }
@@ -130,7 +137,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                                 await context.Response.WriteAsync(result.Ticket.Principal.Identity.Name);
                             }
                         }
-                        else if (context.Request.Path == new PathString("/fulluser"))
+                        else if (context.Request.Path == new PathString(FullUserPath))
                         {
                             var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
                             if (!result.Succeeded)
@@ -142,7 +149,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                                 await context.Response.WriteAsync(JsonSerializer.Serialize(context.User.Identity));
                             }
                         }
-                        else if (context.Request.Path == new PathString("/fullticketprincipal"))
+                        else if (context.Request.Path == new PathString(FullTicketPrincipalClaimsPath))
                         {
                             var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
                             if (!result.Succeeded)
@@ -154,7 +161,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                                 await context.Response.WriteAsync(JsonSerializer.Serialize(result.Ticket.Principal.Claims.Select(x => new { x.Type, x.Value })));
                             }
                         }
-                        else if (context.Request.Path == new PathString("/fullticketproperties"))
+                        else if (context.Request.Path == new PathString(FullTicketPropertiesPath))
                         {
                             var result = await context.AuthenticateAsync(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
                             if (!result.Succeeded)
@@ -175,10 +182,6 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
                 .ConfigureServices(services =>
                 {
                     builderAction(services.AddAuthentication(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
-
-                    // add singleton class used for custom authentication
-                    services.AddSingleton<TestApiKeyService>();
-                    services.AddSingleton<CustomFullTicketHandler>();
                 });
 
             return new TestServer(builder);

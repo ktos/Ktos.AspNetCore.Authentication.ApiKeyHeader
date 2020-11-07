@@ -52,7 +52,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     /// <summary>
     /// Defines the type of the function the custom API key authentication logic must follow
     /// </summary>
-    public interface IApiKeyCustomAuthenticatorFullTicket
+    public interface IApiKeyCustomAuthenticationTicketHandler
     {
         /// <summary>
         /// <para>Custom function used for checking if the provided API key should be authenticated.</para>

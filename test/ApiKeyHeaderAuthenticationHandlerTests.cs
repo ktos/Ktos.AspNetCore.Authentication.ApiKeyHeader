@@ -33,16 +33,19 @@ using System;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 {
     public class ApiKeyHeaderAuthenticationHandlerTests
     {
+        public const string TestApiKey = "testapi";
+
         [Fact]
         public async Task EmptyApiKeyReturns401()
         {
-            var client = TestBed.GetClient();
+            var client = TestBed.GetClientWithOptions(options => options.ApiKey = TestApiKey);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -52,8 +55,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         [Fact]
         public async Task InvalidCredentialsReturns401()
         {
-            var client = TestBed.GetClient();
-            client.SetApiKey("wrongkey");
+            var client = TestBed.GetClientWithOptions(options => options.ApiKey = TestApiKey);
+            client.UseApiKey("wrongkey");
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -63,9 +66,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         [Fact]
         public async Task ValidCredentialsAuthorize()
         {
-            const string key = "testapi";
-            var client = TestBed.GetClient();
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithOptions(options => options.ApiKey = TestApiKey);
+            client.UseApiKey(TestApiKey);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -78,8 +80,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "testapi";
             const string header = "X-API-KEY";
 
-            var client = TestBed.GetClient(options => { options.ApiKey = key; options.Header = header; });
-            client.SetApiKey(key, header);
+            var client = TestBed.GetClientWithOptions(options => { options.ApiKey = key; options.Header = header; });
+            client.UseApiKey(key, header);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -93,8 +95,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string wrongkey = "wrongkey";
             const string header = "X-API-KEY";
 
-            var client = TestBed.GetClient(options => { options.ApiKey = key; options.Header = header; });
-            client.SetApiKey(wrongkey, header);
+            var client = TestBed.GetClientWithOptions(options => { options.ApiKey = key; options.Header = header; });
+            client.UseApiKey(wrongkey, header);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -107,14 +109,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string key2 = "goodkey2";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithOptions(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
+            client.UseApiKey(key);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(key, await response.Content.ReadAsStringAsync());
 
-            client.SetApiKey(key2);
+            client.UseApiKey(key2);
             response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -127,8 +129,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string claimName = "John";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithOptions(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
+            client.UseApiKey(key);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -141,9 +143,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string claimName = "John";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
-            client.SetApiKey(key);
-            var response = await client.GetAsync("/fulluser");
+            var client = TestBed.GetClientWithOptions(options => { options.CustomAuthenticationHandler = _ => (true, claimName); });
+            client.UseApiKey(key);
+            var response = await client.GetAsync(TestBed.FullUserPath);
 
             var content = await response.Content.ReadAsStringAsync();
 
@@ -157,11 +159,15 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         public async Task ValidCredentialsAndCustomAuthenticationFullTicketProperlySetOtherClaimsInTicket()
         {
             const string key = "goodkey";
-            const string claimName = "John";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
-            client.SetApiKey(key);
-            var response = await client.GetAsync("/fullticketprincipal");
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+                builder.Services.AddSingleton<IApiKeyCustomAuthenticationTicketHandler, CustomFullTicketHandler>();
+            });
+
+            client.UseApiKey(key);
+            var response = await client.GetAsync(TestBed.FullTicketPrincipalClaimsPath);
 
             var content = await response.Content.ReadAsStringAsync();
 
@@ -169,7 +175,7 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", claims.RootElement[0].GetProperty("Type").GetString());
-            Assert.Equal(claimName, claims.RootElement[0].GetProperty("Value").GetString());
+            Assert.Equal(CustomFullTicketHandler.TestUserName, claims.RootElement[0].GetProperty("Value").GetString());
             Assert.Equal("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", claims.RootElement[1].GetProperty("Type").GetString());
             Assert.Equal(CustomFullTicketHandler.TestRole, claims.RootElement[1].GetProperty("Value").GetString());
         }
@@ -179,9 +185,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         {
             const string key = "goodkey";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
-            client.SetApiKey(key);
-            var response = await client.GetAsync("/fullticketproperties");
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+                builder.Services.AddSingleton<IApiKeyCustomAuthenticationTicketHandler, CustomFullTicketHandler>();
+            });
+            client.UseApiKey(key);
+
+            var response = await client.GetAsync(TestBed.FullTicketPropertiesPath);
 
             var content = await response.Content.ReadAsStringAsync();
 
@@ -197,9 +208,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string claimName = "John";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticatorType = typeof(CustomFullTicketHandler); });
-            client.SetApiKey(key);
-            var response = await client.GetAsync("/fulluser");
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+                builder.Services.AddSingleton<IApiKeyCustomAuthenticationTicketHandler, CustomFullTicketHandler>();
+            });
+
+            client.UseApiKey(key);
+            var response = await client.GetAsync(TestBed.FullUserPath);
             var content = await response.Content.ReadAsStringAsync();
 
             var user = JsonDocument.Parse(content);
@@ -213,8 +229,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         {
             const string key = "goodkey";
 
-            var client = TestBed.GetClient(options => options.CustomAuthenticationHandler = (_) => (true, null));
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithOptions(options => options.CustomAuthenticationHandler = (_) => (true, null));
+            client.UseApiKey(key);
             await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.GetAsync("/"));
         }
 
@@ -223,8 +239,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         {
             const string key = "testapi";
 
-            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+                builder.Services.AddSingleton<IApiKeyCustomAuthenticator, TestApiKeyService>();
+            });
+
+            client.UseApiKey(key);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -232,11 +253,18 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         }
 
         [Fact]
-        public async Task ValidCredentialsAndBadTypeOfAuthenticationServiceThrows()
+        public async Task ValidCredentialsAndNoRegisteredAuthenticationServiceReturns401()
         {
-            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(object));
-            client.SetApiKey("testapi");
-            await Assert.ThrowsAsync<InvalidCastException>(async () => await client.GetAsync("/"));
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+            });
+
+            client.UseApiKey("testapi");
+            var response = await client.GetAsync("/");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(string.Empty, await response.Content.ReadAsStringAsync());
         }
 
         [Fact]
@@ -244,8 +272,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
         {
             const string key = "badapi";
 
-            var client = TestBed.GetClient(options => options.CustomAuthenticatorType = typeof(TestApiKeyService));
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithBuilder(builder =>
+            {
+                builder.AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
+                builder.Services.AddSingleton<IApiKeyCustomAuthenticator, TestApiKeyService>();
+            });
+
+            client.UseApiKey(key);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -259,14 +292,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key2 = "goodkey2";
             const string customHeader = "X-CUSTOM-HEADER";
 
-            var client = TestBed.GetClient(options => { options.Header = customHeader; options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
-            client.SetApiKey(key, customHeader);
+            var client = TestBed.GetClientWithOptions(options => { options.Header = customHeader; options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
+            client.UseApiKey(key, customHeader);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(key, await response.Content.ReadAsStringAsync());
 
-            client.SetApiKey(key2, customHeader);
+            client.UseApiKey(key2, customHeader);
             response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -279,14 +312,14 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key = "goodkey";
             const string key2 = "badkey";
 
-            var client = TestBed.GetClient(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
-            client.SetApiKey(key);
+            var client = TestBed.GetClientWithOptions(options => { options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic; });
+            client.UseApiKey(key);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(key, await response.Content.ReadAsStringAsync());
 
-            client.SetApiKey(key2);
+            client.UseApiKey(key2);
             response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -300,19 +333,19 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests
             const string key2 = "badkey";
             const string customHeader = "X-CUSTOM-HEADER";
 
-            var client = TestBed.GetClient(options =>
+            var client = TestBed.GetClientWithOptions(options =>
             {
                 options.Header = customHeader;
                 options.CustomAuthenticationHandler = SimpleCustomAuthenticationLogic;
             });
 
-            client.SetApiKey(key, customHeader);
+            client.UseApiKey(key, customHeader);
             var response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(key, await response.Content.ReadAsStringAsync());
 
-            client.SetApiKey(key2, customHeader);
+            client.UseApiKey(key2, customHeader);
             response = await client.GetAsync("/");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

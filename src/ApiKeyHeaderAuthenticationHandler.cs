@@ -29,7 +29,6 @@
 
 #endregion License
 
-using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -70,36 +69,17 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// <returns>Returns Claim with name if authentication was successful or NoResult of not</returns>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            var registeredHandler = Context.RequestServices.GetService(typeof(IApiKeyCustomAuthenticator));
+            var registeredHandler2 = Context.RequestServices.GetService(typeof(IApiKeyCustomAuthenticationTicketHandler));
+
             var headerKey = Context.Request.Headers[Options.Header].FirstOrDefault();
             if (headerKey == null)
             {
                 return AuthenticateResult.NoResult();
             }
-            else if (Options.CustomAuthenticatorType != null || Options.CustomAuthenticationHandler != null)
+            else if (Options.CustomAuthenticationHandler != null && !Options.UseRegisteredAuthenticationHandler)
             {
-                bool result = false;
-                string claimName = null;
-
-                if (Options.CustomAuthenticatorType != null)
-                {
-                    switch (Context.RequestServices.GetService(Options.CustomAuthenticatorType))
-                    {
-                        case IApiKeyCustomAuthenticator s:
-                            (result, claimName) = s.CustomAuthenticationHandler(headerKey);
-                            break;
-
-                        case IApiKeyCustomAuthenticatorFullTicket s:
-                            return s.CustomAuthenticationHandler(headerKey);
-
-                        default:
-                            throw new InvalidCastException("Failed to use provided custom authenticator type");
-                    }
-                }
-
-                if (Options.CustomAuthenticationHandler != null)
-                {
-                    (result, claimName) = Options.CustomAuthenticationHandler(headerKey);
-                }
+                var (result, claimName) = Options.CustomAuthenticationHandler(headerKey);
 
                 if (result)
                 {
@@ -110,7 +90,24 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
                     return AuthenticateResult.NoResult();
                 }
             }
-            else if (headerKey == Options.ApiKey)
+            else if (registeredHandler != null && Options.UseRegisteredAuthenticationHandler)
+            {
+                var (result, claimName) = (registeredHandler as IApiKeyCustomAuthenticator).CustomAuthenticationHandler(headerKey);
+
+                if (result)
+                {
+                    return AuthenticateResult.Success(CreateAuthenticationTicket(claimName));
+                }
+                else
+                {
+                    return AuthenticateResult.NoResult();
+                }
+            }
+            else if (registeredHandler2 != null && Options.UseRegisteredAuthenticationHandler)
+            {
+                return (registeredHandler2 as IApiKeyCustomAuthenticationTicketHandler).CustomAuthenticationHandler(headerKey);
+            }
+            else if (headerKey == Options.ApiKey && !Options.UseRegisteredAuthenticationHandler)
             {
                 return AuthenticateResult.Success(CreateAuthenticationTicket());
             }
