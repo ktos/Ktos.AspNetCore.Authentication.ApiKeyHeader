@@ -10,6 +10,11 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
+- task: UseDotNet@2  
+  inputs:    
+    version: '5.x'
+    includePreviewVersions: true
+    
 - task: GitVersion@5
   inputs:
     runtime: 'core'
