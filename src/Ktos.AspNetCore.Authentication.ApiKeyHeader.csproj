@@ -6,7 +6,7 @@
     <Authors>Marcin Badurowicz</Authors>
     <NoWarn>$(NoWarn);CS1998</NoWarn>
     <Description>Api Key in HTTP Header Authentication Scheme for ASP.NET Core</Description>
-    <PackageVersion>6.0.0-rc.2</PackageVersion>
+    <PackageVersion>6.0.0</PackageVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageTags>api;apikey;aspnetcore;authentication;security</PackageTags>
     <PackageProjectUrl>https://github.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageProjectUrl>
@@ -16,6 +16,6 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0-rc.2.*" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
   </ItemGroup>
 </Project>
