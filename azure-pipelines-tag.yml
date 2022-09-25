@@ -19,20 +19,20 @@ steps:
     version: '6.x'
     includePreviewVersions: true
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: Restore
   inputs:
     command: 'restore'
     projects: 'src/*.csproj'
 
-- task: DotNetCoreCLI@2  
+- task: DotNetCoreCLI@2.210.0  
   inputs:
     command: 'build'
     projects: 'src/*.csproj'
     arguments: '--configuration $(buildConfiguration) /p:Version=$(GitVersion.SemVer) /p:InformationalVersion=$(GitVersion.FullSemVer)'
   displayName: 'dotnet build $(buildConfiguration)'
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: Test
   inputs:
     command: 'test'
@@ -46,7 +46,7 @@ steps:
     pathToSources: 'src/'
     #reportDirectory: 'report/'
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: 'dotnet pack'
   inputs:
     command: 'pack'

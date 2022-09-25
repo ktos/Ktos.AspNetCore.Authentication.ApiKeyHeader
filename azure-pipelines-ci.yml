@@ -16,20 +16,20 @@ steps:
     version: '6.x'
     includePreviewVersions: true
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: Restore
   inputs:
     command: 'restore'
     projects: 'src/*.csproj'
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: Build
   inputs:    
     command: 'build'
     projects: 'src/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- task: DotNetCoreCLI@2
+- task: DotNetCoreCLI@2.210.0
   displayName: Test
   inputs:
     command: 'test'
