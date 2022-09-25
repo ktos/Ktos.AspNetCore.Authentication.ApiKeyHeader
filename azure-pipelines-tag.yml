@@ -14,7 +14,7 @@ steps:
   inputs:
     runtime: 'core'
 
-- task: UseDotNet@2  
+- task: UseDotNet@2.207.2  
   inputs:    
     version: '6.x'
     includePreviewVersions: true
