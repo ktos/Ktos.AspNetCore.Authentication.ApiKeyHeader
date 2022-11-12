@@ -10,10 +10,6 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- task: GitVersion@5
-  inputs:
-    runtime: 'core'
-
 - task: gitversion/setup@0
   inputs:
     versionSpec: '5.x'
