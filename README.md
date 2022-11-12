@@ -1,6 +1,7 @@
 # Ktos.AspNetCore.Authentication.ApiKeyHeader
 
-[![Build Status](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_apis/build/status/ApiKeyHeader%20Tag?branchName=master)](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_build/latest?definitionId=8&branchName=master)
+[![Build
+Status](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_apis/build/status/ApiKeyHeader%20Tag?branchName=master)](https://dev.azure.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader/_build/latest?definitionId=8&branchName=master)
 [![NuGet](https://img.shields.io/nuget/v/Ktos.AspNetCore.Authentication.ApiKeyHeader.svg)](https://www.nuget.org/packages/Ktos.AspNetCore.Authentication.ApiKeyHeader/)
 
 Authentication for ASP.NET Core Security using HTTP header like `X-APIKEY` and
@@ -13,35 +14,23 @@ security.
 
 ## Sample usage
 
-Configure your authentication method in `ConfigureServices()`:
+Configure your authentication method in `Program.cs`:
 
 ```csharp
-public void ConfigureServices(IServiceCollection services)
+// ...
+builder.Services.AddAuthentication(options =>
 {
-    // ...
-    services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
-    })
-        .AddApiKeyHeaderAuthentication(options => options.ApiKey = "my-secret-api-key");
-
-    // ...
-}
+    options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+})
+    .AddApiKeyHeaderAuthentication(options => options.ApiKey = "my-secret-api-key");
 ```
 
-And use it in `Configure()`:
+Remember about activating it later:
 
 ```csharp
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-{
-    // ...
-
-    app.UseAuthentication();
-    app.UseAuthorization();
-
-    // ...
-}
+app.UseAuthentication();
+app.UseAuthorization();
 ```
 
 It requires you to authenticate to sent `X-APIKEY` header along with your
@@ -51,7 +40,19 @@ will fail with `401 Unauthorized` HTTP error.
 Of course, *you* have to ensure your controller or actions are expecting user to
 be authenticated, for example you can use `[Authorize]`.
 
-[See Microsoft docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-3.1) for more.
+[See Microsoft
+docs](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-7.0)
+for more.
+
+### Simplified version for .NET 7.0
+
+In ASP.NET Core 7.0, when using only one `AuthenticationScheme`, you can use
+simpler version:
+
+```csharp
+builder.Services.AddAuthentication()
+    .AddApiKeyHeaderAuthentication(options => options.ApiKey = "my-secret-api-key");
+```
 
 ### Custom header
 
@@ -59,18 +60,14 @@ You can use any header, by configuring options, e.g. you can set you want
 `x-api-key`, not `X-APIKEY`:
 
 ```csharp
-public void ConfigureServices(IServiceCollection services)
+builder.Services.AddAuthentication(options =>
 {
-    // ...
-    services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
-    })
-        .AddApiKeyHeaderAuthentication(options => { options.ApiKey = "my-secret-api-key"; options.Header = "x-api-key"; });
+    options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
+})
+    .AddApiKeyHeaderAuthentication(options => { options.ApiKey = "my-secret-api-key"; options.Header = "x-api-key"; });
 
-    // ...
-}
+// ...
 ```
 
 ### Custom logic (simple)
@@ -107,14 +104,14 @@ In that case, you may use it for database connection, checking users API key
 usage limits or similar things before authentication.
 
 ```csharp
-services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
 })
 .AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
 
-services.AddSingleton<TestApiKeyService>();
+builder.Services.AddSingleton<TestApiKeyService>();
 ```
 
 The interface requires for you implementation of a method returning a pair of
@@ -156,14 +153,14 @@ This interface allows to create a custom method returning full
 using later.
 
 ```csharp
-services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme;
 })
 .AddApiKeyHeaderAuthentication(options => options.UseRegisteredAuthenticationHandler = true);
 
-services.AddSingleton<CustomFullTicketHandler>();
+builder.Services.AddSingleton<CustomFullTicketHandler>();
 ```
 
 The class implementing `IApiKeyCustomAuthenticatorFullTicket` is being created
@@ -227,5 +224,4 @@ In any other case, `NoResult()` is returned.
 
 Licensed under MIT
 
-Have a lot of fun.
---ktos
+Have a lot of fun. --ktos

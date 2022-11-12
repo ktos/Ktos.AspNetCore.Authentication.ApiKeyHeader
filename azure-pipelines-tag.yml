@@ -4,7 +4,7 @@ trigger:
       - refs/tags/v*
 
 pool:
-  vmImage: 'Ubuntu 18.04'
+  vmImage: 'Ubuntu 20.04'
 
 variables:
   buildConfiguration: 'Release'
@@ -16,7 +16,7 @@ steps:
 
 - task: UseDotNet@2  
   inputs:    
-    version: '6.x'
+    version: '7.x'
     includePreviewVersions: true
 
 - task: DotNetCoreCLI@2
