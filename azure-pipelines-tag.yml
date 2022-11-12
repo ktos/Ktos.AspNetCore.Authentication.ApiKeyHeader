@@ -14,6 +14,12 @@ steps:
   inputs:
     runtime: 'core'
 
+- task: gitversion/setup@0
+  inputs:
+    versionSpec: '5.x'
+    
+- task: gitversion/execute@0
+
 - task: UseDotNet@2  
   inputs:    
     version: '7.x'
