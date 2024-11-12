@@ -64,7 +64,7 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.gitversion.outputs.semVer }}
+        tag_name: v${{ steps.gitversion.outputs.semVer }}
         name: v${{ steps.gitversion.outputs.semVer }}
         files: |
           ./nupkg/*.nupkg
