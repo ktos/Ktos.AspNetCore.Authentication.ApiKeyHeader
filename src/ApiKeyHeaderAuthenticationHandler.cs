@@ -50,7 +50,8 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
     /// <summary>
     /// Handles ApiKeyHeader authentication scheme
     /// </summary>
-    public class ApiKeyHeaderAuthenticationHandler : AuthenticationHandler<ApiKeyHeaderAuthenticationOptions>
+    public class ApiKeyHeaderAuthenticationHandler
+        : AuthenticationHandler<ApiKeyHeaderAuthenticationOptions>
     {
         /// <summary>
         /// Initializes a new instance of ApiKeyHeaderAuthenticationHandler
@@ -59,9 +60,13 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// <param name="logger"></param>
         /// <param name="encoder"></param>
         /// <param name="clock"></param>
-        public ApiKeyHeaderAuthenticationHandler(IOptionsMonitor<ApiKeyHeaderAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
-        {
-        }
+        public ApiKeyHeaderAuthenticationHandler(
+            IOptionsMonitor<ApiKeyHeaderAuthenticationOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder,
+            ISystemClock clock
+        )
+            : base(options, logger, encoder, clock) { }
 
         /// <summary>
         /// Handles authentication by checking if there is proper api key set in HTTP header
@@ -69,15 +74,22 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// <returns>Returns Claim with name if authentication was successful or NoResult of not</returns>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            var registeredHandler = Context.RequestServices.GetService(typeof(IApiKeyCustomAuthenticator));
-            var registeredHandler2 = Context.RequestServices.GetService(typeof(IApiKeyCustomAuthenticationTicketHandler));
+            var registeredHandler = Context.RequestServices.GetService(
+                typeof(IApiKeyCustomAuthenticator)
+            );
+            var registeredHandler2 = Context.RequestServices.GetService(
+                typeof(IApiKeyCustomAuthenticationTicketHandler)
+            );
 
             var headerKey = Context.Request.Headers[Options.Header].FirstOrDefault();
             if (headerKey == null)
             {
                 return AuthenticateResult.NoResult();
             }
-            else if (Options.CustomAuthenticationHandler != null && !Options.UseRegisteredAuthenticationHandler)
+            else if (
+                Options.CustomAuthenticationHandler != null
+                && !Options.UseRegisteredAuthenticationHandler
+            )
             {
                 var (result, claimName) = Options.CustomAuthenticationHandler(headerKey);
 
@@ -92,7 +104,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             }
             else if (registeredHandler != null && Options.UseRegisteredAuthenticationHandler)
             {
-                var (result, claimName) = (registeredHandler as IApiKeyCustomAuthenticator).CustomAuthenticationHandler(headerKey);
+                var (result, claimName) = (
+                    registeredHandler as IApiKeyCustomAuthenticator
+                ).CustomAuthenticationHandler(headerKey);
 
                 if (result)
                 {
@@ -105,7 +119,9 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             }
             else if (registeredHandler2 != null && Options.UseRegisteredAuthenticationHandler)
             {
-                return (registeredHandler2 as IApiKeyCustomAuthenticationTicketHandler).CustomAuthenticationHandler(headerKey);
+                return (
+                    registeredHandler2 as IApiKeyCustomAuthenticationTicketHandler
+                ).CustomAuthenticationHandler(headerKey);
             }
             else if (headerKey == Options.ApiKey && !Options.UseRegisteredAuthenticationHandler)
             {
@@ -117,12 +133,17 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
             }
         }
 
-        private AuthenticationTicket CreateAuthenticationTicket(string claimName = ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName)
+        private AuthenticationTicket CreateAuthenticationTicket(
+            string claimName = ApiKeyHeaderAuthenticationDefaults.AuthenticationClaimName
+        )
         {
             var claims = new[] { new Claim(ClaimTypes.Name, claimName) };
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);
-            var at = new AuthenticationTicket(principal, ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme);
+            var at = new AuthenticationTicket(
+                principal,
+                ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme
+            );
             //Context.User.AddIdentity(new ClaimsIdentity(ApiKeyHeaderAuthenticationDefaults.AuthenticationScheme));
             return at;
         }

@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <PackageId>Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageId>
     <Authors>Marcin Badurowicz</Authors>
     <NoWarn>$(NoWarn);CS1998</NoWarn>
     <Description>Api Key in HTTP Header Authentication Scheme for ASP.NET Core</Description>
-    <PackageVersion>7.0.0</PackageVersion>
+    <PackageVersion>9.0.0</PackageVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageTags>api;apikey;aspnetcore;authentication;security</PackageTags>
     <PackageProjectUrl>https://github.com/ktos/Ktos.AspNetCore.Authentication.ApiKeyHeader</PackageProjectUrl>
