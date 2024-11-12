@@ -18,27 +18,27 @@ jobs:
 
     # Use GitVersion
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.10.2
+      uses: gittools/actions/gitversion/setup@v3.0.0
       with:
-        versionSpec: '5.x'
+        versionSpec: '6.x'
 
     - name: Determine Version
       id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.10.2
+      uses: gittools/actions/gitversion/execute@v3.0.0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: 9.0.x
 
     - name: Restore Dependencies
-      run: dotnet restore src/Eleia.csproj
+      run: dotnet restore src/Ktos.AspNetCore.Authentication.ApiKeyHeader.csproj
 
     - name: Build
-      run: dotnet build src/Eleia.csproj --configuration Release --no-restore /p:InformationalVersion=${{ steps.gitversion.outputs.fullSemVer }} /p:Version=${{ steps.gitversion.outputs.semVer }}
+      run: dotnet build src/Ktos.AspNetCore.Authentication.ApiKeyHeader.csproj --configuration Release --no-restore /p:InformationalVersion=${{ steps.gitversion.outputs.fullSemVer }} /p:Version=${{ steps.gitversion.outputs.semVer }}
 
     - name: Test
-      run: dotnet test test/Eleia.Test.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+      run: dotnet test test/Ktos.AspNetCore.Authentication.ApiKeyHeader.Tests.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
     - name: Code Coverage Report
       uses: irongut/CodeCoverageSummary@v1.3.0
