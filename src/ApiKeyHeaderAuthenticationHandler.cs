@@ -29,6 +29,7 @@
 
 #endregion License
 
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -59,14 +60,12 @@ namespace Ktos.AspNetCore.Authentication.ApiKeyHeader
         /// <param name="options"></param>
         /// <param name="logger"></param>
         /// <param name="encoder"></param>
-        /// <param name="clock"></param>
         public ApiKeyHeaderAuthenticationHandler(
             IOptionsMonitor<ApiKeyHeaderAuthenticationOptions> options,
             ILoggerFactory logger,
-            UrlEncoder encoder,
-            ISystemClock clock
+            UrlEncoder encoder
         )
-            : base(options, logger, encoder, clock) { }
+            : base(options, logger, encoder) { }
 
         /// <summary>
         /// Handles authentication by checking if there is proper api key set in HTTP header
