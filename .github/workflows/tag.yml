@@ -14,7 +14,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
 
@@ -25,7 +25,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --verbosity normal
 
   publish-nuget:
     needs: build-and-test
@@ -34,16 +34,37 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
 
+    # Use GitVersion
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.0.0
+      with:
+        versionSpec: '6.x'
+
+    - name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v3.0.0
+
     - name: Publish NuGet Package
       run: |
-        dotnet nuget add source --name "nuget.org" --source "https://api.nuget.org/v3/index.json"
-        dotnet pack --configuration Release --no-build --output ./nupkg/
+        dotnet restore
+        dotnet build --configuration Release
+        dotnet pack --configuration Release --output ./nupkg/
         dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source "nuget.org"
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.gitversion.outputs.semVer }}
+        name: v${{ steps.gitversion.outputs.semVer }}
+        files: |
+          ./nupkg/*.nupkg
